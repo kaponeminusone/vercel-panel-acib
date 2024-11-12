@@ -106,7 +106,7 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
     setIsFormValid(validateForm());
   }, [formData]);
 
-  const handleInputChange = (etapaIndex: number, type: string, fieldIndex: number, fieldId: number, value: any) => {
+  const handleInputChange = (etapaIndex: number, type: string, fieldIndex: number, _fieldId: number, value: any) => {
     setFormData((prevState: any) => {
       const updatedEtapas = [...prevState.etapas];
       switch (type) {
