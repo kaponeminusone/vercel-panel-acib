@@ -1,17 +1,7 @@
 import React from 'react';
 import './Sidebar.css';
-import LineChartChange from '../LineChartChange/LineChartChange';
 
 const Sidebar: React.FC = () => {
-  const weekData = [
-    { noConformes: 3, salidas: 10, num_procesos: 1 },
-    { noConformes: 4, salidas: 15, num_procesos: 2 },
-    { noConformes: 2, salidas: 8, num_procesos: 1 },
-    { noConformes: 5, salidas: 20, num_procesos: 3 },
-    { noConformes: 1, salidas: 2, num_procesos: 1 },
-    { noConformes: 0, salidas: 0, num_procesos: 0 },
-    { noConformes: 4, salidas: 12, num_procesos: 3 },
-  ];
 
   return (
     <div className="sidebar">

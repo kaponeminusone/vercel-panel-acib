@@ -55,7 +55,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile }) => {
       {pdfFile ? (
         <>
           <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess}>
-            {Array.from(new Array(numPages), (el, index) => (
+            {Array.from(new Array(numPages), (_el, index) => (
               <Page 
                 key={`page_${index + 1}`} 
                 pageNumber={index + 1} 
@@ -83,7 +83,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ pdfFile }) => {
             {/* Contenido del visor de PDF en el modal */}
             {pdfFile ? (
               <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess}>
-                {Array.from(new Array(numPages), (el, index) => (
+                {Array.from(new Array(numPages), (_el, index) => (
                   <Page 
                     key={`page_${index + 1}`} 
                     pageNumber={index + 1} 

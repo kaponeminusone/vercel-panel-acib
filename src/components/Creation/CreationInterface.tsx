@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Plus, Trash2, Eye } from 'lucide-react'
+import { Plus, Eye } from 'lucide-react'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@radix-ui/react-accordion';
 import { Button } from "./components/Button"
 import { Input } from "./components/Input"
@@ -49,7 +49,7 @@ interface ItemListProps {
   removeItem: (id: string) => void
 }
 
-const ItemList: React.FC<ItemListProps> = ({ type, items, removeItem }) => {
+const ItemList: React.FC<ItemListProps> = ({ items }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
 
@@ -115,7 +115,7 @@ const ItemList: React.FC<ItemListProps> = ({ type, items, removeItem }) => {
 
 export default function CreationInterface() {
   const [activeForm, setActiveForm] = useState<ItemType | null>(null)
-  const [items, setItems] = useState<Item[]>([])
+  const [, setItems] = useState<Item[]>([])
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [showProcessForm, setShowProcessForm] = useState(false)
 

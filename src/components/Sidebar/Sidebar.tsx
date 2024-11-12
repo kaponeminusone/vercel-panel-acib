@@ -1,6 +1,5 @@
 // src/components/Sidebar.js
 
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { User } from 'lucide-react'; // Importa el icono de perfil de lucide-react
 import './Sidebar.css';
