@@ -29,23 +29,23 @@ export default function Etapa({ numEtapa, onRemove, onDataChange }: EtapaProps) 
     if (newItem[type] !== '') {
       const id = Number(newItem[type]);
       let newItemObj: Item = { id };
-      
+
       if (type === 'indicadores' && newItem.indicadoresEntrada !== '') {
         newItemObj.entrada_id = Number(newItem.indicadoresEntrada);
       }
 
-      setItems(prev => ({
+      setItems((prev) => ({
         ...prev,
         [type]: [...prev[type], newItemObj],
       }));
-      setNewItem(prev => ({ ...prev, [type]: '', indicadoresEntrada: '' }));
+      setNewItem((prev) => ({ ...prev, [type]: '', indicadoresEntrada: '' }));
     }
   };
 
   const handleRemoveItem = (type: string, id: number) => {
-    setItems(prev => ({
+    setItems((prev) => ({
       ...prev,
-      [type]: prev[type].filter(item => item.id !== id),
+      [type]: prev[type].filter((item) => item.id !== id),
     }));
   };
 
@@ -54,7 +54,7 @@ export default function Etapa({ numEtapa, onRemove, onDataChange }: EtapaProps) 
       num_etapa: numEtapa,
       ...items,
     });
-  }, [items, numEtapa, onDataChange]);
+  }, [items, numEtapa]); // Esto evita el ciclo infinito, limitando la ejecución solo cuando cambia 'items' o 'numEtapa'
 
   const renderTable = (type: string) => (
     <table className="w-full text-sm">
@@ -87,38 +87,35 @@ export default function Etapa({ numEtapa, onRemove, onDataChange }: EtapaProps) 
   return (
     <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Etapa {numEtapa}</h3>
-        <button
-          onClick={onRemove}
-          className="text-red-500 hover:text-red-700"
-        >
+        <h3 className="text-md font-medium">Etapa {numEtapa}</h3>
+        <button onClick={onRemove} className="text-red-500 hover:text-red-700 focus:outline-none">
           Eliminar Etapa
         </button>
       </div>
       {['entradas', 'indicadores', 'salidas'].map((type) => (
         <div key={type} className="space-y-2">
-          <h4 className="font-medium capitalize">{type}</h4>
+          <h4 className="text-sm font-medium capitalize text-gray-700">{type}</h4>
           {renderTable(type)}
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-2">
             <input
               type="number"
               value={newItem[type]}
-              onChange={(e) => setNewItem(prev => ({ ...prev, [type]: e.target.value }))}
+              onChange={(e) => setNewItem((prev) => ({ ...prev, [type]: e.target.value }))}
               placeholder={`ID de ${type.slice(0, -1)}`}
-              className="flex-grow px-2 py-1 text-sm border rounded"
+              className="flex-grow px-2 py-1 text-sm border rounded focus:outline-none focus:ring focus:ring-blue-500"
             />
             {type === 'indicadores' && (
               <input
                 type="number"
                 value={newItem.indicadoresEntrada}
-                onChange={(e) => setNewItem(prev => ({ ...prev, indicadoresEntrada: e.target.value }))}
+                onChange={(e) => setNewItem((prev) => ({ ...prev, indicadoresEntrada: e.target.value }))}
                 placeholder="ID de Entrada"
-                className="flex-grow px-2 py-1 text-sm border rounded"
+                className="flex-grow px-2 py-1 text-sm border rounded focus:outline-none focus:ring focus:ring-blue-500"
               />
             )}
             <button
               onClick={() => handleAddItem(type)}
-              className="px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+              className="flex items-center justify-center p-1 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
             >
               <Plus className="h-4 w-4" />
             </button>

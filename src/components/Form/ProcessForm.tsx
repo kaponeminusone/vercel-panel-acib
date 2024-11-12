@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Etapa from './Etapa'; // Asegúrate de que la ruta sea correcta
+import Etapa from './Etapa';
 import { Plus } from 'lucide-react';
 
 interface ProcesoProps {
@@ -8,7 +8,7 @@ interface ProcesoProps {
 
 const Proceso: React.FC<ProcesoProps> = ({ onCreateProcess }) => {
   const [etapas, setEtapas] = useState<any[]>([]);
-  const [nombreProceso, setNombreProceso] = useState<string>(''); // Estado para el nombre del proceso
+  const [nombreProceso, setNombreProceso] = useState<string>('');
 
   const addEtapa = () => {
     const newEtapa = {
@@ -17,54 +17,63 @@ const Proceso: React.FC<ProcesoProps> = ({ onCreateProcess }) => {
       indicadores: [],
       salidas: [],
     };
-    setEtapas([...etapas, newEtapa]);
+    setEtapas((prev) => [...prev, newEtapa]);
   };
 
   const removeEtapa = (index: number) => {
-    setEtapas(etapas.filter((_, i) => i !== index));
+    setEtapas((prev) => prev.filter((_, i) => i !== index));
   };
 
   const getEtapaData = (data: any) => {
-    const updatedEtapas = [...etapas];
-    updatedEtapas[data.num_etapa - 1] = data; // Actualiza los datos de la etapa
-    setEtapas(updatedEtapas);
+    setEtapas((prev) => {
+      const updatedEtapas = [...prev];
+      updatedEtapas[data.num_etapa - 1] = data;
+      return updatedEtapas;
+    });
   };
 
   const handleCreateProcess = () => {
     const processData = {
-      nombre: nombreProceso, // Usa el nombre del proceso ingresado
+      nombre: nombreProceso,
       etapas,
     };
-
-    onCreateProcess(processData); // Envía los datos del nuevo proceso al componente padre
-    // Reiniciar el formulario después de crear el proceso
+    onCreateProcess(processData);
     setNombreProceso('');
     setEtapas([]);
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Formulario de Proceso</h1>
+    <div className="p-4 space-y-4 bg-white shadow rounded-lg max-w-lg mx-auto">
+      <h1 className="text-xl font-semibold mb-2 text-gray-800">Formulario de Proceso</h1>
       <input
         type="text"
         value={nombreProceso}
         onChange={(e) => setNombreProceso(e.target.value)}
         placeholder="Nombre del Proceso"
-        className="mb-4 px-2 py-1 border rounded"
+        className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring focus:ring-blue-500"
       />
-      <button type="button" onClick={addEtapa} className="mb-4 px-4 py-2 bg-blue-500 text-white rounded">
-        <Plus className="inline-block mr-1" /> Añadir Etapa
+      <button
+        type="button"
+        onClick={addEtapa}
+        className="flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none"
+      >
+        <Plus className="h-4 w-4 mr-1" /> Añadir Etapa
       </button>
-      {etapas.map((etapa, index) => (
-        <Etapa 
-          key={index} 
-          numEtapa={etapa.num_etapa} 
-          onRemove={() => removeEtapa(index)} 
-          onDataChange={getEtapaData} // Pasar función para actualizar datos
-        />
-      ))}
+      <div className="space-y-3">
+        {etapas.map((etapa, index) => (
+          <Etapa
+            key={index}
+            numEtapa={etapa.num_etapa}
+            onRemove={() => removeEtapa(index)}
+            onDataChange={getEtapaData}
+          />
+        ))}
+      </div>
       {etapas.length > 0 && (
-        <button onClick={handleCreateProcess} className="mt-4 px-4 py-2 bg-green-500 text-white rounded">
+        <button
+          onClick={handleCreateProcess}
+          className="w-full py-2 mt-4 bg-green-500 text-white rounded hover:bg-green-600 focus:outline-none"
+        >
           Crear Proceso
         </button>
       )}

@@ -1,3 +1,5 @@
+// src/components/LineChart.tsx
+
 import React from 'react';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend } from 'chart.js';
@@ -22,17 +24,17 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
         label: 'No Conformes',
         data: data.noConformes,
         borderColor: 'rgba(255, 99, 132, 1)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)', // Cambiado a semi-transparente
-        fill: true,
-        tension: 0, // Para suavizar la curva
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        fill: false, // Quitar el área de relleno
+        tension: 0,
         animations: {
           y: {
             duration: 1000,
             delay: 500,
-            from: (ctx: { type: string; mode: string; dropped?: boolean; }) => {
+            from: (ctx: { type: string; mode: string; dropped?: boolean }) => {
               if (ctx.type === 'data' && ctx.mode === 'default' && !ctx.dropped) {
-                ctx.dropped = true; // Indica que se ha procesado
-                return 0; // Comienza desde 0
+                ctx.dropped = true;
+                return 0;
               }
             },
           },
@@ -42,17 +44,17 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
         label: 'Salidas',
         data: data.salidas,
         borderColor: 'rgba(54, 162, 235, 1)',
-        backgroundColor: 'rgba(54, 162, 235, 0.5)', // Cambiado a semi-transparente
-        fill: true,
-        tension: 0, // Para suavizar la curva
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        fill: false, // Quitar el área de relleno
+        tension: 0,
         animations: {
           y: {
             duration: 1000,
             delay: 300,
-            from: (ctx: { type: string; mode: string; dropped?: boolean; }) => {
+            from: (ctx: { type: string; mode: string; dropped?: boolean }) => {
               if (ctx.type === 'data' && ctx.mode === 'default' && !ctx.dropped) {
-                ctx.dropped = true; // Indica que se ha procesado
-                return 0; // Comienza desde 0
+                ctx.dropped = true;
+                return 0;
               }
             },
           },
@@ -62,12 +64,14 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
   };
 
   const options = {
+    responsive: true,
+    maintainAspectRatio: false, // Permite que el gráfico ocupe todo el ancho
     plugins: {
       legend: {
         position: 'top' as const,
         labels: {
-          boxWidth: 10,  // Cambia el ancho del cuadro a 20 (puedes ajustarlo según necesites)
-          boxHeight: 10,  // Cambia la altura del cuadro a 20 para hacer un cuadrado
+          boxWidth: 10,
+          boxHeight: 10,
         },
       },
     },
@@ -78,7 +82,7 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
           text: 'Número de Etapas',
         },
         grid: {
-          display: false,  // Oculta la cuadrícula del eje X
+          display: false,
         },
       },
       y: {
@@ -87,15 +91,14 @@ const LineChart: React.FC<LineChartProps> = ({ data }) => {
           text: 'Cantidad',
         },
         grid: {
-          display: false,  // Oculta la cuadrícula del eje Y
+          display: false,
         },
       },
     },
   };
 
   return (
-    <div className="line-chart-container">
-
+    <div className="line-chart-container" style={{ width: '100%', height: '100%' }}>
       <Line data={chartData} options={options} />
     </div>
   );

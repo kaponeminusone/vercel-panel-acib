@@ -45,6 +45,7 @@
   width: 24px;
   height: 24px;
   margin-top: 24px;
+  margin-left: 10px;
 }
 
 .button-creation svg{
@@ -75,7 +76,7 @@
 }
 
 .card-subtitle-creation {
-  font-size: 0.875rem;
+  /* font-size: 0.875rem; */
 }
 
 .card-tags-creation {

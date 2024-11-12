@@ -1,45 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { API_CONFIG } from '../../../config'; // Asegúrate de que esta ruta sea correcta
-import { Alert, AlertDescription } from "./Alert"
+import { API_CONFIG } from '../../../config';
+import { Alert, AlertDescription } from "./Alert";
 
-// Define las interfaces para las respuestas del API
 interface EntradaResponse {
-    id: number;
-    nombre: string;
-    tipo: 'int' | 'float'; // Asegúrate de que estos coincidan con tus tipos de entrada
+  id: number;
+  nombre: string;
+  tipo: 'int' | 'float';
 }
 
 interface IndicadorResponse {
-    id: number;
-    nombre: string;
-    tipo: 'range' | 'checkbox' | 'criteria';
-    entrada_id: number;
+  id: number;
+  nombre: string;
+  tipo: 'range' | 'checkbox' | 'criteria';
+  entrada_id: number;
 }
 
 interface SalidaResponse {
-    id: number;
-    nombre: string;
-    tipo: 'int' | 'float'; // Asegúrate de que estos coincidan con tus tipos de salida
+  id: number;
+  nombre: string;
+  tipo: 'int' | 'float';
 }
 
 interface EtapaResponse {
-    id: number;
-    num_etapa: number;
-    entradas: EntradaResponse[];
-    indicadores: IndicadorResponse[];
-    salidas: SalidaResponse[];
+  id: number;
+  num_etapa: number;
+  entradas: EntradaResponse[];
+  indicadores: IndicadorResponse[];
+  salidas: SalidaResponse[];
 }
 
 interface ProcesoResponse {
-    id: number;
-    nombre: string;
-    num_etapas: number;
-    etapas: EtapaResponse[];
-}
-interface ModalProps {
-  id: string;
-  onClose: () => void;
+  id: number;
+  nombre: string;
+  num_etapas: number;
+  etapas: EtapaResponse[];
 }
 
 interface ModalProps {
@@ -53,7 +48,6 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
   const [processData, setProcessData] = useState<ProcesoResponse | null>(null);
   const [formData, setFormData] = useState<any>({ etapas: [] });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFormValid, setIsFormValid] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   useEffect(() => {
@@ -70,11 +64,12 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
             indicadores: etapa.indicadores.map((indicador) => ({
               id: indicador.id,
               entrada_id: indicador.entrada_id,
-              checkbox: false,
-              range: '',
-              criteria: '',
+              checkbox: indicador.tipo === 'checkbox' ? false : undefined,
+              range: indicador.tipo === 'range' ? '' : undefined,
+              criteria: indicador.tipo === 'criteria' ? '' : undefined,
+              state: false,
             })),
-            salidas: etapa.salidas.map((salida) => ({ id: salida.id, value: '' })),
+            salidas: etapa.salidas.map((salida) => ({ id: salida.id, value: 0 })), // Salida inicialmente en 0
           })),
         };
         setFormData(initialFormData);
@@ -87,24 +82,48 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
     fetchProcessData();
   }, [id, apiURL]);
 
-  useEffect(() => {
-    const validateForm = () => {
-      if (!formData.etapas) return false;
-
-      return formData.etapas.every((etapa: any) => 
-        etapa.entradas.every((entrada: any) => entrada.value !== '') &&
-        etapa.indicadores.every((indicador: any) => {
-          if (indicador.checkbox !== undefined) return true;
-          if (indicador.range !== undefined) return indicador.range !== '';
-          if (indicador.criteria !== undefined) return indicador.criteria !== '';
-          return false;
-        }) &&
-        etapa.salidas.every((salida: any) => salida.value !== '')
+  const handlePreviewEvaluation = async (etapaIndex: number) => {
+    try {
+      const etapa = formData.etapas[etapaIndex];
+      const response = await axios.post<{ preview: { salidas: any[]; indicadores: any[] } }>(
+        `${apiURL}/execution/preview-evaluation`,
+        {
+          num_etapa: etapa.num_etapa,
+          entradas: etapa.entradas,
+          indicadores: etapa.indicadores.map((indicador: any) => ({
+            id: indicador.id,
+            entrada_id: indicador.entrada_id,
+            checkbox: indicador.checkbox,
+            range: indicador.range,
+            criteria: indicador.criteria,
+          })),
+          salidas: etapa.salidas.map((salida: any) => ({ id: salida.id, value: 0 })),
+        }
       );
-    };
 
-    setIsFormValid(validateForm());
-  }, [formData]);
+      const previewData = response.data.preview;
+
+      setFormData((prevState: any) => {
+        const updatedEtapas = [...prevState.etapas];
+        
+        // Actualizar salidas con valores devueltos por la previsualización
+        updatedEtapas[etapaIndex].salidas = previewData.salidas.map((salida: any) => ({
+          ...salida,
+        }));
+        
+        // Actualizar el estado de los indicadores si afectaron la salida
+        updatedEtapas[etapaIndex].indicadores = previewData.indicadores.map((indicador: any, index: number) => ({
+          ...updatedEtapas[etapaIndex].indicadores[index],
+          state: indicador.state,
+        }));
+        
+        return { ...prevState, etapas: updatedEtapas };
+      });
+    } catch (error) {
+      console.error('Error fetching preview data:', error);
+      setAlertMessage({ type: 'error', message: 'Error al obtener la previsualización. Intente de nuevo.' });
+    }
+  };
 
   const handleInputChange = (etapaIndex: number, type: string, fieldIndex: number, _fieldId: number, value: any) => {
     setFormData((prevState: any) => {
@@ -119,9 +138,6 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
           else if (indicator.range !== undefined) indicator.range = value;
           else if (indicator.criteria !== undefined) indicator.criteria = value;
           break;
-        case 'salida':
-          updatedEtapas[etapaIndex].salidas[fieldIndex].value = value;
-          break;
       }
       return { ...prevState, etapas: updatedEtapas };
     });
@@ -129,18 +145,15 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
-
     setIsSubmitting(true);
     setAlertMessage(null);
 
     try {
-      const response = await axios.post(`${apiURL}/execution/`, formData);
-      console.log('Respuesta del servidor:', response.data);
+      await axios.post(`${apiURL}/execution/`, formData);
       setAlertMessage({ type: 'success', message: 'Proceso ejecutado exitosamente' });
       setTimeout(() => {
         setAlertMessage(null);
-        onClose(); // Cerrar el modal después de una presentación exitosa
+        onClose();
       }, 3000);
     } catch (error) {
       console.error('Error al enviar los datos:', error);
@@ -154,37 +167,34 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white p-4 rounded-md w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-semibold mb-4">Iniciar Proceso - ID: {id}</h2>
-        
+
         {alertMessage && (
           <Alert className={`mb-4 ${alertMessage.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'}`}>
             <AlertDescription>{alertMessage.message}</AlertDescription>
           </Alert>
         )}
-        
+
         {processData && (
           <form onSubmit={handleSubmit} className="space-y-6">
             {formData.etapas.map((etapa: any, etapaIndex: number) => (
               <div key={etapa.num_etapa} className="border border-gray-200 rounded-lg p-4">
                 <h3 className="text-lg font-semibold mb-2">Etapa {etapa.num_etapa}</h3>
-                
+
                 <div className="grid grid-cols-3 gap-4">
                   {/* Entradas */}
                   <div>
                     <h4 className="text-md font-medium mb-2">Entradas</h4>
                     <table className="w-full">
                       <tbody>
-                        {etapa.entradas.map((entrada: any, entradaIndex: number) => (
+                        {processData.etapas[etapaIndex].entradas.map((entrada, entradaIndex) => (
                           <tr key={entrada.id}>
                             <td className="pr-2 py-1">
-                              <label htmlFor={`entrada-${entrada.id}`} className="text-sm font-medium text-gray-700">
-                                {processData.etapas[etapaIndex].entradas[entradaIndex].nombre}:
-                              </label>
+                              <label className="text-sm font-medium text-gray-700">{entrada.nombre}:</label>
                             </td>
                             <td>
                               <input
-                                id={`entrada-${entrada.id}`}
                                 type="number"
-                                value={entrada.value}
+                                value={etapa.entradas[entradaIndex].value}
                                 onChange={(e) => handleInputChange(etapaIndex, 'entrada', entradaIndex, entrada.id, e.target.value)}
                                 className="w-full border border-gray-300 rounded-md shadow-sm p-1 text-sm"
                                 required
@@ -201,41 +211,38 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
                     <h4 className="text-md font-medium mb-2">Indicadores</h4>
                     <table className="w-full">
                       <tbody>
-                        {etapa.indicadores.map((indicador: any, indicadorIndex: number) => (
+                        {processData.etapas[etapaIndex].indicadores.map((indicador, indicadorIndex) => (
                           <tr key={indicador.id}>
                             <td className="pr-2 py-1">
                               <label className="text-sm font-medium text-gray-700">
-                                {processData.etapas[etapaIndex].indicadores[indicadorIndex].nombre}:
+                                {indicador.nombre}:
+                                {etapa.indicadores[indicadorIndex].state && (
+                                  <span className="text-xs ml-2 text-red-600">Afectó la salida</span>
+                                )}
                               </label>
-                              <div className="text-xs text-gray-500">
-                                (Afecta: {processData.etapas[etapaIndex].entradas.find((e: any) => e.id === indicador.entrada_id)?.nombre})
-                              </div>
                             </td>
                             <td>
-                              {indicador.checkbox !== undefined ? (
+                              {indicador.tipo === 'checkbox' ? (
                                 <input
                                   type="checkbox"
-                                  checked={indicador.checkbox}
+                                  checked={etapa.indicadores[indicadorIndex].checkbox || false}
                                   onChange={(e) => handleInputChange(etapaIndex, 'indicador', indicadorIndex, indicador.id, e.target.checked)}
-                                  className="mt-1"
                                 />
-                              ) : indicador.range !== undefined ? (
+                              ) : indicador.tipo === 'range' ? (
                                 <input
                                   type="text"
-                                  value={indicador.range}
+                                  value={etapa.indicadores[indicadorIndex].range || ''}
                                   onChange={(e) => handleInputChange(etapaIndex, 'indicador', indicadorIndex, indicador.id, e.target.value)}
                                   placeholder="10-50"
                                   className="w-full border border-gray-300 rounded-md shadow-sm p-1 text-sm"
-                                  required
                                 />
                               ) : (
                                 <input
                                   type="text"
-                                  value={indicador.criteria}
+                                  value={etapa.indicadores[indicadorIndex].criteria || ''}
                                   onChange={(e) => handleInputChange(etapaIndex, 'indicador', indicadorIndex, indicador.id, e.target.value)}
-                                  placeholder="Ej. >300"
+                                  placeholder="Ej. 10%"
                                   className="w-full border border-gray-300 rounded-md shadow-sm p-1 text-sm"
-                                  required
                                 />
                               )}
                             </td>
@@ -253,33 +260,36 @@ export default function ValidatedCompactProcessModalWithAlerts({ id, onClose }: 
                         {etapa.salidas.map((salida: any, salidaIndex: number) => (
                           <tr key={salida.id}>
                             <td className="pr-2 py-1">
-                              <label htmlFor={`salida-${salida.id}`} className="text-sm font-medium text-gray-700">
-                                {processData.etapas[etapaIndex].salidas[salidaIndex].nombre}:
-                              </label>
+                              <label className="text-sm font-medium text-gray-700">{processData.etapas[etapaIndex].salidas[salidaIndex].nombre}:</label>
                             </td>
                             <td>
                               <input
-                                id={`salida-${salida.id}`}
                                 type="number"
                                 value={salida.value}
-                                onChange={(e) => handleInputChange(etapaIndex, 'salida', salidaIndex, salida.id, e.target.value)}
+                                readOnly
                                 className="w-full border border-gray-300 rounded-md shadow-sm p-1 text-sm"
-                                required
                               />
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    <button
+                      type="button"
+                      onClick={() => handlePreviewEvaluation(etapaIndex)}
+                      className="mt-2 text-blue-600 hover:underline"
+                    >
+                      Realizar previsualización
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-4 mt-6">
               <button
                 type="submit"
                 className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!isFormValid || isSubmitting}
+                disabled={isSubmitting}
               >
                 {isSubmitting ? 'Enviando...' : 'Enviar'}
               </button>

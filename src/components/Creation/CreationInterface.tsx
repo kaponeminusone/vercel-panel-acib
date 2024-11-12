@@ -1,315 +1,224 @@
-'use client'
-
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { Plus, Eye } from 'lucide-react'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@radix-ui/react-accordion';
 import { Button } from "./components/Button"
 import { Input } from "./components/Input"
-import { Textarea } from "./components/Textarea"
 import { Alert, AlertDescription } from "./components/Alert"
-import Proceso from '../Form/ProcessForm' 
-import EntradaForm from '../Form/EntradaForm' 
-import IndicadorForm from '../Form/IndicadorForm' 
+import Proceso from '../Form/ProcessForm'
+import EntradaForm from '../Form/EntradaForm'
+import IndicadorForm from '../Form/IndicadorForm'
 import { API_CONFIG } from '../../config'
 import './CreationInterface.css'
 import Modal from './components/Modal';
 
-
-type ItemType = 'process' | 'indicator' | 'input'
-
-interface Item {
-  id: string
-  name: string
-  type: ItemType
-  details?: string[]
-  description?: string
-}
+type ItemType = 'process' | 'indicator' | 'input';
 
 interface Process {
-  id: number
-  nombre: string
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  num_etapas: number;
+  num_entradas: number;
+  num_salidas: number;
+  num_indicadores: number;
 }
 
 interface Indicator {
-  id: number
-  nombre: string
-  tipo: 'range' | 'criteria' | 'checkbox'
+  id: number;
+  nombre: string;
+  tipo: 'range' | 'criteria' | 'checkbox';
+  descripcion?: string;
 }
 
 interface InputData {
-  id: number
-  nombre: string
-  tipo: 'int' | 'float'
+  id: number;
+  nombre: string;
+  tipo: 'int' | 'float';
+  descripcion?: string;
+}
+
+interface ProcessDetail {
+  nombre: string;
+  num_etapas: number;
+  etapas: {
+    num_etapa: number;
+    entradas: { nombre: string; tipo: string }[];
+    indicadores: { nombre: string; tipo: string }[];
+    salidas: { nombre: string; tipo: string }[];
+  }[];
 }
 
 interface ItemListProps {
-  type: ItemType
-  items: Item[]
-  removeItem: (id: string) => void
+  type: ItemType;
+  items: (Process | Indicator | InputData)[];
 }
 
-const ItemList: React.FC<ItemListProps> = ({ items }) => {
+const ItemList: React.FC<ItemListProps> = ({ type, items }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [processDetails, setProcessDetails] = useState<Record<string, ProcessDetail | null>>({});
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
 
-  const toggleItem = (itemId: string) => {
+  const toggleItem = async (itemId: string, itemType: ItemType) => {
     const newExpandedItems = new Set(expandedItems);
     if (newExpandedItems.has(itemId)) {
       newExpandedItems.delete(itemId);
+      setProcessDetails((prevDetails) => ({ ...prevDetails, [itemId]: null }));
     } else {
       newExpandedItems.add(itemId);
+      if (itemType === 'process' && !processDetails[itemId]) {
+        try {
+          const response = await axios.get<ProcessDetail>(`${API_CONFIG.baseURL}/process/${itemId}`);
+          setProcessDetails((prevDetails) => ({ ...prevDetails, [itemId]: response.data }));
+        } catch (error) {
+          console.error('Error fetching process details:', error);
+        }
+      }
     }
     setExpandedItems(newExpandedItems);
   };
 
   return (
-    <>
-      <Accordion type="multiple">
-        {items.map((item) => (
-          <AccordionItem
-            key={item.id}
-            value={item.id.toString()}
-            className="card-creation" // Clase para aplicar estilos de tarjeta
+    <Accordion type="multiple">
+      {items.map((item) => (
+        <AccordionItem key={item.id} value={item.id.toString()} className="card-creation">
+          <AccordionTrigger
+            className="card-header-creation item-container-content w-full m-0 flex min-h-10 pt-2 pb-2 pl-4 justify-between items-center bg-white"
+            onClick={() => toggleItem(item.id.toString(), type)}
           >
-            <AccordionTrigger
-              className="card-header-creation item-container-content w-full m-0 flex min-h-10 pt-2 pb-2 pl-4 justify-between items-center bg-white" // Clase de cabecera de tarjeta
-              onClick={() => toggleItem(item.id.toString())}
-            >
+            <div className='flex w-full justify-between flex-col'>
               <div className='flex w-full justify-between'>
-                <h4 className="card-title-creation item-title m-0 inline-block">{item.name}</h4>
-                {item.type && <p className="card-subtitle-creation text-sm">ID: <span className="font-medium">{item.id}</span></p>}
+                <h4 className="card-title-creation text-left break-words item-title m-0 inline-block">
+                  {item.nombre}
+                </h4>
+                <h4 className="item-title text-left whitespace-nowrap inline-block pr-[10px]">ID: {item.id}</h4>
               </div>
-              {expandedItems.has(item.id.toString()) && (
-                <Eye className="h-5 w-5 text-gray-700 hover:text-gray-900 transition-colors" />
-              )}
-            </AccordionTrigger>
-            <AccordionContent className="p-1 text-gray-700">
-                {item.type && (
-                <p className="card-subtitle-creation text-sm">
-                  {item.type === 'process' 
-                    ? `ID: ${item.id}    Inicialización de parametros con los valores`
-                    : `ID: ${item.id}`}
+              {type === 'process' && (
+                <p className="card-subtitle-creation text-xs text-left pt-[5px] text-gray-700">
+                  Etapas: {(item as Process).num_etapas}, Entradas: {(item as Process).num_entradas}, Salidas: {(item as Process).num_salidas}, Indicadores: {(item as Process).num_indicadores}
                 </p>
               )}
-              {item.type === 'process' && (
-                <div
-                  onClick={() => setSelectedProcessId(item.id)} // Abre el modal con el ID del proceso
-                  className="mt-3 flex items-center justify-center bg-blue-600 text-white hover:bg-blue-500 transition-colors rounded-md px-4 py-2 cursor-pointer"
-                >
-                  <span>Iniciar Proceso</span>
+            </div>
+            {expandedItems.has(item.id.toString()) && <Eye className="h-5 w-5 text-gray-700 hover:text-gray-900 transition-colors" />}
+          </AccordionTrigger>
+          <AccordionContent className="p-1 text-gray-700">
+            {type === 'process' && (
+              <div
+                onClick={() => setSelectedProcessId(item.id.toString())}
+                className="text-sm flex flex-col items-center justify-center bg-blue-600 text-white hover:bg-blue-500 transition-colors rounded-md px-2 py-2 cursor-pointer"
+              >
+                <span>Iniciar Proceso</span>
+              </div>
+            )}
+            {type === 'process' && processDetails[item.id] ? (
+              processDetails[item.id]?.etapas.map((etapa, index) => (
+                <div key={index} className="mb-3">
+                  <h5 className="text-sm font-semibold">Etapa {etapa.num_etapa}</h5>
+                  <div className="ml-2">
+                    <h6 className="text-xs font-medium m-0">Entradas:</h6>
+                    <ul className="list-disc pl-4">
+                      {etapa.entradas.map((entrada, i) => (
+                        <li key={i} className="text-xs">{entrada.nombre} ({entrada.tipo})</li>
+                      ))}
+                    </ul>
+                    <h6 className="text-xs font-medium m-0">Indicadores:</h6>
+                    <ul className="list-disc pl-4">
+                      {etapa.indicadores.map((indicador, i) => (
+                        <li key={i} className="text-xs">{indicador.nombre} ({indicador.tipo})</li>
+                      ))}
+                    </ul>
+                    <h6 className="text-xs font-medium m-0">Salidas:</h6>
+                    <ul className="list-disc pl-4">
+                      {etapa.salidas.map((salida, i) => (
+                        <li key={i} className="text-xs">{salida.nombre} ({salida.tipo})</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-              )}
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
-
-      {/* Renderiza el modal solo si hay un proceso seleccionado */}
+              ))
+            ) : type === 'indicator' || type === 'input' ? (
+              <div className="ml-2">
+                <p className="text-sm font-medium">Tipo: {(item as Indicator | InputData).tipo}</p>
+                {item.descripcion && <p className="text-sm text-gray-600">Descripción: {item.descripcion}</p>}
+              </div>
+            ) : (
+              <p>Cargando detalles...</p>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+      ))}
       {selectedProcessId && (
         <Modal id={selectedProcessId} onClose={() => setSelectedProcessId(null)} />
       )}
-    </>
+    </Accordion>
   );
 };
 
 export default function CreationInterface() {
-  const [activeForm, setActiveForm] = useState<ItemType | null>(null)
-  const [, setItems] = useState<Item[]>([])
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
-  const [showProcessForm, setShowProcessForm] = useState(false)
+  const [activeForm, setActiveForm] = useState<ItemType | null>(null);
+  const [processes, setProcesses] = useState<Process[]>([]);
+  const [indicators, setIndicators] = useState<Indicator[]>([]);
+  const [inputs, setInputs] = useState<InputData[]>([]);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const apiURL = API_CONFIG.baseURL
+  const fetchData = async () => {
+    try {
+      const processResponse = await axios.get<Process[]>(`${API_CONFIG.baseURL}/process/`);
+      setProcesses(processResponse.data);
 
-  const [processes, setProcesses] = useState<Process[]>([])
-  const [indicators, setIndicators] = useState<Indicator[]>([])
-  const [inputs, setInputs] = useState<InputData[]>([])
+      const indicatorResponse = await axios.get<Indicator[]>(`${API_CONFIG.baseURL}/indicators/`);
+      setIndicators(indicatorResponse.data);
 
-  const [newItemName, setNewItemName] = useState<string>('')
-  const [newItemDescription, setNewItemDescription] = useState<string>('')
+      const inputResponse = await axios.get<InputData[]>(`${API_CONFIG.baseURL}/inputs/`);
+      setInputs(inputResponse.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
-  const addItem = async (type: ItemType, newItem?: Item) => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const addItem = async (type: ItemType, newItem: any) => {
     try {
       let response;
-  
-      if (type === 'input') {
-        response = await axios.post(`${apiURL}/inputs/`, {
-          id: Number(newItem?.id),
-          nombre: newItem?.name,
-          tipo: 'int',
-        });
+      if (type === 'process') {
+        response = await axios.post(`${API_CONFIG.baseURL}/process/`, newItem);
       } else if (type === 'indicator') {
-        response = await axios.post(`${apiURL}/indicators/`, {
-          id: Number(newItem?.id),
-          nombre: newItem?.name,
-          tipo: 'range',
-        });
-      } else if (type === 'process') {
-        response = await axios.post(`${apiURL}/process/`, JSON.parse(newItem?.description || '{}'));
+        response = await axios.post(`${API_CONFIG.baseURL}/indicators/`, newItem);
+      } else if (type === 'input') {
+        response = await axios.post(`${API_CONFIG.baseURL}/inputs/`, newItem);
       }
-  
-      console.log("Response:", response?.data);
-  
-      await fetchData();
-  
-      setSuccessMessage(`${type === 'process' ? 'Proceso' : type === 'indicator' ? 'Indicador' : 'Entrada/Salida'} creado exitosamente`);
-  
-      setTimeout(() => setSuccessMessage(null), 3000);
+
+      if (response?.status === 200) {
+        fetchData(); // Actualiza la lista después de una creación exitosa
+        setSuccessMessage(`${type === 'process' ? 'Proceso' : type === 'indicator' ? 'Indicador' : 'Entrada/Salida'} creado exitosamente`);
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
+      if (response?.status === 201) {
+        fetchData(); // Actualiza la lista después de una creación exitosa
+        setSuccessMessage(`${type === 'process' ? 'Proceso' : type === 'indicator' ? 'Indicador' : 'Entrada/Salida'} creado exitosamente`);
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
     } catch (error) {
       console.error('Error al crear el item:', error);
       setSuccessMessage('Error al crear el item. Por favor, intente de nuevo.');
     }
   };
-  
-  const fetchData = async () => {
-    try {
-      const processResponse = await axios.get<Process[]>(`${apiURL}/process/`);
-      setProcesses(processResponse.data);
-  
-      const indicatorResponse = await axios.get<Indicator[]>(`${apiURL}/indicators/`);
-      setIndicators(indicatorResponse.data);
-  
-      const inputResponse = await axios.get<InputData[]>(`${apiURL}/inputs/`);
-      setInputs(inputResponse.data);
-    } catch (error) {
-      console.error('Error al obtener datos:', error);
-    }
-  }
-  
-  useEffect(() => {
-    fetchData();
-  }, [apiURL]);
-
-  const removeItem = (id: string) => {
-    setItems(prevItems => prevItems.filter(item => item.id !== id))
-  }
-
-  const handleAddEntrada = (entrada: { id: number; nombre: string; tipo: 'int' | 'float' }) => {
-    const newEntrada: Item = {
-      id: entrada.id.toString(),
-      name: entrada.nombre,
-      type: 'input',
-      description: `Tipo: ${entrada.tipo}`,
-      details: []
-    };
-    addItem('input', newEntrada);
-  };
-
-  const handleAddIndicador = (indicador: { id: number; nombre: string; tipo: 'range' | 'criteria' | 'checkbox' }) => {
-    const newIndicador: Item = {
-      id: indicador.id.toString(),
-      name: indicador.nombre,
-      type: 'indicator',
-      description: `Tipo: ${indicador.tipo}`,
-      details: []
-    };
-    addItem('indicator', newIndicador);
-  };
-
-  // Mapea los procesos a Items
-  const mapProcessesToItems = (processes: Process[]): Item[] => {
-    return processes.map(process => ({
-      id: process.id.toString(),
-      name: process.nombre,
-      type: 'process', 
-      description: '',  
-      details: []
-    }));
-  };
-
-  // Mapea los indicadores a Items
-  const mapIndicatorsToItems = (indicators: Indicator[]): Item[] => {
-    return indicators.map(indicator => ({
-      id: indicator.id.toString(),
-      name: indicator.nombre,
-      type: 'indicator',
-      description: '',  
-      details: []
-    }));
-  };
-
-  // Mapea las entradas a Items
-  const mapInputsToItems = (inputs: InputData[]): Item[] => {
-    return inputs.map(input => ({
-      id: input.id.toString(),
-      name: input.nombre,
-      type: 'input',
-      description: '',  
-      details: []
-    }));
-  };
-
-  // Modifica la función renderItems para usar los mapeos
-  const renderItems = (type: ItemType) => {
-    let filteredItems: Item[];
-
-    if (type === 'process') {
-      filteredItems = mapProcessesToItems(processes);
-    } else if (type === 'indicator') {
-      filteredItems = mapIndicatorsToItems(indicators);
-    } else {
-      filteredItems = mapInputsToItems(inputs);
-    }
-
-    return (
-      <ItemList
-        type={type}
-        items={filteredItems}
-        removeItem={removeItem}
-      />
-    );
-  };
 
   const renderForm = () => {
-    if (activeForm === 'process' && showProcessForm) {
+    if (activeForm === 'process') {
       return (
-        <div className="mt-4">
-          <Proceso onCreateProcess={(newProcess) => {
-            const newItem: Item = {
-              id: Date.now().toString(),
-              name: newProcess.nombre,
-              type: 'process',
-              description: JSON.stringify(newProcess, null, 2),
-              details: newProcess.etapas,
-            };
-            addItem('process', newItem);
-          }} />
-        </div>
+        <Proceso onCreateProcess={(newProcess) => addItem('process', newProcess)} />
       );
     } else if (activeForm === 'input') {
-      return (
-        <EntradaForm onAddEntrada={handleAddEntrada} />
-      );
+      return <EntradaForm onAddEntrada={(entrada) => addItem('input', entrada)} />;
     } else if (activeForm === 'indicator') {
-      return (
-        <IndicadorForm onAddIndicador={handleAddIndicador} />
-      );
+      return <IndicadorForm onAddIndicador={(indicador) => addItem('indicator', indicador)} />;
     }
-  
-    return (
-      <form onSubmit={(e) => { 
-          e.preventDefault(); 
-          addItem(activeForm!, { id: Date.now().toString(), name: newItemName, type: activeForm!, description: newItemDescription }); 
-          setNewItemName(''); 
-          setNewItemDescription(''); 
-        }} 
-        className="space-y-4"
-      >
-        <Input
-          type="text"
-          placeholder={`Nombre del ${activeForm === 'process' ? 'proceso' : activeForm === 'indicator' ? 'indicador' : 'entrada/salida'}`}
-          value={newItemName} 
-          onChange={(e) => setNewItemName(e.target.value)} 
-        />
-        <Textarea
-          placeholder="Descripción"
-          value={newItemDescription} 
-          onChange={(e) => setNewItemDescription(e.target.value)} 
-        />
-        <Button type="submit">Crear {activeForm === 'process' ? 'Proceso' : activeForm === 'indicator' ? 'Indicador' : 'Entrada/Salida'}</Button>
-      </form>
-    )
-  }
+    return null;
+  };
 
   return (
     <div className="creation-container container mx-auto">
@@ -322,37 +231,48 @@ export default function CreationInterface() {
       )}
       <div className="grid h-full w-full grid-cols-4 gap-4 overflow-scroll box-border">
         <div className='col-span-1'>
-          <div className='flex flex-row justify-between'>
+          <div className='flex flex-row justify-start'>
             <h3 className="text-xl font-semibold mb-2">Procesos</h3>
-            <Button className="button-creation" onClick={() => { setActiveForm('process'); setShowProcessForm(true); }} size="sm">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              className="flex justify-center border-none items-center w-6 h-6 mt-6 ml-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+              onClick={() => setActiveForm('process')}
+              size="sm"
+            >
+              <Plus className="text-white h-4 w-4" />
             </Button>
           </div>
-          {renderItems('process')}
+          <ItemList type="process" items={processes} />
         </div>
         <div className='col-span-1'>
-          <div className='flex flex-row justify-between'>
+          <div className='flex flex-row justify-start'>
             <h3 className="text-xl font-semibold mb-2">Indicadores</h3>
-            <Button className="button-creation" onClick={() => { setActiveForm('indicator'); setShowProcessForm(false); }} size="sm">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              className="flex justify-center border-none items-center w-6 h-6 mt-6 ml-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+              onClick={() => setActiveForm('indicator')}
+              size="sm"
+            >
+              <Plus className="text-white h-4 w-4" />
             </Button>
           </div>
-          {renderItems('indicator')}
+          <ItemList type="indicator" items={indicators} />
         </div>
         <div className='col-span-1'>
-          <div className='flex flex-row justify-between'>
+          <div className='flex flex-row justify-start'>
             <h3 className="text-xl font-semibold mb-2">Entradas/Salidas</h3>
-            <Button className="button-creation" onClick={() => { setActiveForm('input'); setShowProcessForm(false); }} size="sm">
-              <Plus className="mr-2 h-4 w-4" />
+            <Button
+              className="flex justify-center border-none items-center w-6 h-6 mt-6 ml-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+              onClick={() => setActiveForm('input')}
+              size="sm"
+            >
+              <Plus className="text-white h-4 w-4" />
             </Button>
           </div>
-          {renderItems('input')}
+          <ItemList type="input" items={inputs} />
         </div>
-        <div className='col-span-1 flex w-full box-border pr-10'>  
+        <div className='col-span-1 flex w-full box-border pr-10'>
           {renderForm()}
         </div>
       </div>
-  </div>
-
-  )
+    </div>
+  );
 }

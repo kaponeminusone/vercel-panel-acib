@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Search, Check } from 'lucide-react'; 
+import { Search, Check } from 'lucide-react';
 import './MonitoreoDashboard.css';
-import PdfViewer from './PdfViewer'; 
-import pdfDocument from '../../assets/proof.pdf'; 
+import PdfViewer from './PdfViewer';
+import pdfDocument from '../../assets/proof.pdf';
 import { API_CONFIG } from '../../config';
+import { useUser } from '../../context/UserContext'; // Contexto de usuario
 
 interface Process {
   id_proceso_ejecutado: number;
@@ -32,8 +33,15 @@ interface Record {
   id_proceso_ejecutado: number | null;
 }
 
+interface UserResponse {
+  id: number;
+  nombre: string;
+  email: string;
+  tipo: string;
+}
+
 export default function MonitoreoDashboard() {
-  const pdfUrlInitial = pdfDocument; 
+  const pdfUrlInitial = pdfDocument;
   const [pdfUrl, setPdfUrl] = useState(pdfUrlInitial);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [records, setRecords] = useState<Record[]>([]);
@@ -43,42 +51,33 @@ export default function MonitoreoDashboard() {
   const [errorRecords, setErrorRecords] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [motivo, setMotivo] = useState('');
-  const [usuario, setUsuario] = useState(0); // Cambia esto según tu lógica de usuario
+  const { user } = useUser(); // Obtener usuario del contexto
+  const [usuario, setUsuario] = useState(user?.email || ''); // Placeholder del email del usuario
   const [notas, setNotas] = useState('');
-  const [destino, setDestino] = useState<string>(''); // Cambia a string para facilitar la entrada
+  const [destino, setDestino] = useState<string>(''); // Campo de destino como string de correos electrónicos
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isSendingReport, setIsSendingReport] = useState(false);
-  const [reportGenerated, setReportGenerated] = useState(false); // Estado para saber si se generó el reporte
+  const [reportGenerated, setReportGenerated] = useState(false);
 
   const fetchProcesses = async () => {
     try {
-      const apiURL = API_CONFIG.baseURL; 
+      const apiURL = API_CONFIG.baseURL;
       const response = await axios.get<Process[]>(`${apiURL}/logs/latest/executed/definition/100`);
-      if (Array.isArray(response.data)) {
-        setProcesses(response.data);
-      } else {
-        console.error('La respuesta de procesos no es un arreglo', response.data);
-        setProcesses([]);
-      }
+      setProcesses(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching processes:', error);
-      setErrorProcesses(true); 
+      setErrorProcesses(true);
     }
   };
 
   const fetchRecords = async () => {
     try {
-      const apiURL = API_CONFIG.baseURL; 
-      const response = await axios.get<Record[]>(`${apiURL}/logs/latest/100`); 
-      if (Array.isArray(response.data)) {
-        setRecords(response.data);
-      } else {
-        console.error('La respuesta de registros no es un arreglo', response.data);
-        setRecords([]);
-      }
+      const apiURL = API_CONFIG.baseURL;
+      const response = await axios.get<Record[]>(`${apiURL}/logs/latest/100`);
+      setRecords(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching records:', error);
-      setErrorRecords(true); 
+      setErrorRecords(true);
     }
   };
 
@@ -86,6 +85,17 @@ export default function MonitoreoDashboard() {
     fetchProcesses();
     fetchRecords();
   }, []);
+
+  const fetchUserIdByEmail = async (email: string): Promise<number | null> => {
+    try {
+      const apiURL = API_CONFIG.baseURL;
+      const response = await axios.get<UserResponse>(`${apiURL}/users/${email}`);
+      return response.data.id; // Retorna el ID encontrado
+    } catch (error) {
+      console.warn(`No se encontró el ID para el correo: ${email}`);
+      return null;
+    }
+  };
 
   const toggleProcessSelection = (processId: number) => {
     const newSelected = new Set(selectedProcesses);
@@ -108,72 +118,79 @@ export default function MonitoreoDashboard() {
   };
 
   const generateReport = async () => {
+    const destinatarios = await Promise.all(
+      destino.split(',').map(async (email) => {
+        const id = await fetchUserIdByEmail(email.trim());
+        return id !== null ? id : null;
+      })
+    ).then((ids) => ids.filter((id) => id !== null) as number[]);
+
+    const userId = await fetchUserIdByEmail(usuario); // Usar el ID del usuario si existe
+
     const reportData = {
       titulo,
       motivo,
-      usuario,
+      usuario: userId ?? undefined,
       notas,
-      destino: destino.split(',').map(id => Number(id.trim())), // Convierte a un array de números
+      destino: destinatarios,
       informacion: {
         procesos_ejecutados: Array.from(selectedProcesses),
         registros: Array.from(selectedRecords),
       },
     };
-  
-    setIsGeneratingReport(true); // Desactiva el botón
-  
+
+    setIsGeneratingReport(true);
+
     try {
       const apiURL = API_CONFIG.baseURL;
       const response = await axios.post<Blob>(`${apiURL}/latex/generate`, reportData, {
-        responseType: 'blob', // Para manejar la respuesta como un Blob
+        responseType: 'blob',
       });
-  
-      const url = window.URL.createObjectURL(new Blob([response.data])); // Aquí usamos 'response.data' directamente
-      setPdfUrl(url); // Asigna el PDF al PdfViewer
-      setReportGenerated(true); // Marca que el reporte fue generado
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      setPdfUrl(url);
+      setReportGenerated(true);
     } catch (error) {
       console.error('Error generating report:', error);
     } finally {
-      setIsGeneratingReport(false); // Reactiva el botón
+      setIsGeneratingReport(false);
     }
   };
 
   const sendReport = async () => {
-    if (!reportGenerated) return; // Verifica si se ha generado un reporte
-  
-    // Crea un objeto FormData para enviar datos en multipart/form-data
-    const formData = new FormData();
-    
-    // Agrega el destino como un string de IDs separados por comas
-    const destinosArray = destino.split(',').map(id => Number(id.trim()));
-    destinosArray.forEach(id => formData.append('destino', id.toString()));
-    
-    // Agrega el archivo PDF a FormData
-    const pdfBlob = await fetch(pdfUrl).then(res => res.blob()); // Obtiene el Blob del PDF
-    formData.append('pdf', pdfBlob, 'reporte.pdf'); // Asigna el Blob y un nombre de archivo
-    
+    if (!reportGenerated) return;
 
-    setIsSendingReport(true); // Activa la carga
+    const formData = new FormData();
+    const destinatarios = await Promise.all(
+      destino.split(',').map(async (email) => {
+        const id = await fetchUserIdByEmail(email.trim());
+        return id !== null ? id : null;
+      })
+    );
+
+    destinatarios.forEach((id) => id && formData.append('destino', id.toString()));
+
+    const pdfBlob = await fetch(pdfUrl).then((res) => res.blob());
+    formData.append('pdf', pdfBlob, 'reporte.pdf');
+
+    setIsSendingReport(true);
 
     try {
-      const apiURL = API_CONFIG.baseURL; // Asegúrate de que este sea correcto
+      const apiURL = API_CONFIG.baseURL;
       const response = await axios.post(`${apiURL}/email/report/send`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
-      if (response.status === 200) {
-        alert('Reporte enviado con éxito!'); // Mensaje de éxito
-      }
+
+      if (response.status === 200) alert('Reporte enviado con éxito!');
     } catch (error) {
       console.error('Error sending report:', error);
-      alert('Hubo un error al enviar el reporte.'); // Mensaje de error
-    }finally{
-      setIsSendingReport(false); // Activa la carga
+      alert('Hubo un error al enviar el reporte.');
+    } finally {
+      setIsSendingReport(false);
     }
   };
-  
 
   return (
     <div className="dashboard-container">
@@ -196,7 +213,7 @@ export default function MonitoreoDashboard() {
           <div className="content-columns">
             <div className="column left-column">
               <h3 className="column-title">Últimos procesos</h3>
-              <div className='card-list'>
+              <div className="card-list">
                 {errorProcesses ? (
                   <p>Error al cargar procesos. Por favor, inténtelo más tarde.</p>
                 ) : (
@@ -214,9 +231,9 @@ export default function MonitoreoDashboard() {
                             <div className="card-tags-monitor">
                               <span className="tag blue-tag">Conformidades: {process.conformidades}</span>
                               <span className="tag green-tag">No conformidades: {process.no_conformidades}</span>
-                              <Check 
-                                className={`selection-icon ${selectedProcesses.has(processId) ? 'selected' : 'not-selected'}`} 
-                                size={20} 
+                              <Check
+                                className={`selection-icon ${selectedProcesses.has(processId) ? 'selected' : 'not-selected'}`}
+                                size={20}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   toggleProcessSelection(processId);
@@ -235,7 +252,7 @@ export default function MonitoreoDashboard() {
             </div>
             <div className="column right-column">
               <h3 className="column-title">Últimos registros</h3>
-              <div className='card-list'>
+              <div className="card-list">
                 {errorRecords ? (
                   <p>Error al cargar registros. Por favor, inténtelo más tarde.</p>
                 ) : (
@@ -247,9 +264,9 @@ export default function MonitoreoDashboard() {
                           <p className="card-time">{new Date(record.creado).toLocaleString()}</p>
                           <p className="card-title">{record.descripcion}</p>
                           <p className="card-subtitle">Usuario ID: {record.id_usuario}</p>
-                          <Check 
-                            className={`selection-icon ${selectedRecords.has(recordId) ? 'selected' : 'not-selected'}`} 
-                            size={20} 
+                          <Check
+                            className={`selection-icon ${selectedRecords.has(recordId) ? 'selected' : 'not-selected'}`}
+                            size={20}
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleRecordSelection(recordId);
@@ -271,21 +288,18 @@ export default function MonitoreoDashboard() {
             <button className="action-button" disabled={isGeneratingReport} onClick={generateReport}>
               {isGeneratingReport ? 'Generando...' : 'Generar reporte'}
             </button>
-            {reportGenerated && ( // Muestra el botón de enviar si el reporte fue generado
+            {reportGenerated && (
               <button
-              className="action-button"
-              onClick={sendReport}
-              disabled={isSendingReport} // Deshabilitar mientras se envía
-            >
-              {isSendingReport ? 'Enviando...' : 'Enviar Reporte'}
-            </button>
+                className="action-button"
+                onClick={sendReport}
+                disabled={isSendingReport}
+              >
+                {isSendingReport ? 'Enviando...' : 'Enviar Reporte'}
+              </button>
             )}
           </div>
           <div className="sidebar-content">
-            {selectedProcesses.size > 0 || selectedRecords.size > 0 ? (
-              <>
-                <div className="space-y-3 text-sm">
-                  <div className="flex flex-col w-[95%]">
+          <div className="flex flex-col w-[95%]">
                     <div>
                       <label htmlFor="titulo" className="block text-gray-700 mb-1">Título del reporte:</label>
                       <input
@@ -306,48 +320,39 @@ export default function MonitoreoDashboard() {
                         className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
-                  </div>
-                  <div className="flex flex-col w-[95%]">
-                    <div>
-                      <label htmlFor="usuario" className="block text-gray-700 mb-1">Usuario:</label>
-                      <input
-                        id="usuario"
-                        type="number"
-                        value={usuario}
-                        onChange={(e) => setUsuario(Number(e.target.value))}
-                        className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="destino" className="block text-gray-700 mb-1">Destino:</label>
-                      <input
-                        id="destino"
-                        type="text"
-                        value={destino}
-                        onChange={(e) => setDestino(e.target.value)}
-                        className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                      <small className="text-gray-500 text-xs">Introduce IDs separados por comas (ej. 1, 2, 3)</small>
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="notas" className="block text-gray-700 mb-1 w-[95%]">Notas:</label>
-                    <textarea
-                      id="notas"
-                      value={notas}
-                      onChange={(e) => setNotas(e.target.value)}
-                      className="w-[95%] px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 h-20 resize-none"
-                    />
-                  </div>
-                  <div className="text-xs text-gray-600">
-                    <p># de procesos seleccionados: {selectedProcesses.size}</p>
-                    <p># de reportes seleccionados: {selectedRecords.size}</p>
-                  </div>
                 </div>
-              </>
-            ) : (
-              <p>No ha seleccionado procesos ni registros.</p>
-            )}
+            <div className="space-y-3 text-sm w-[95%]">
+              <label htmlFor="usuario" className="block text-gray-700 mb-1">Usuario:</label>
+              <input
+                id="usuario"
+                type="text"
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value)}
+                placeholder={user?.email || 'Ingresa el correo del usuario'}
+                className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <label htmlFor="destino" className="block text-gray-700 mb-1">Destino:</label>
+              <input
+                id="destino"
+                type="text"
+                value={destino}
+                onChange={(e) => setDestino(e.target.value)}
+                placeholder="Introduce correos separados por comas"
+                className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <small className="text-gray-500 text-xs">Introduce correos separados por comas</small>
+              <label htmlFor="notas" className="block text-gray-700 mb-1">Notas:</label>
+              <textarea
+                id="notas"
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 h-20 resize-none"
+              />
+              <div className="text-xs text-gray-600">
+                <p># de procesos seleccionados: {selectedProcesses.size}</p>
+                <p># de reportes seleccionados: {selectedRecords.size}</p>
+              </div>
+            </div>
             <h2 className="sidebar-title">PDF Visor</h2>
             <PdfViewer pdfFile={pdfUrl} />
           </div>

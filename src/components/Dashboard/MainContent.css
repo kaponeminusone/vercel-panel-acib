@@ -83,7 +83,7 @@
   background-color: white;
   border-radius: 8px;
   overflow: hidden;
-  display: flex;
+  display: grid;
   justify-content: center;
   align-items: center;
 }

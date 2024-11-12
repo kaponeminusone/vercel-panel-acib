@@ -6,10 +6,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Button = ({ variant = 'primary', size = 'md', children, ...props }: ButtonProps) => {
-  const baseClasses = 'inline-flex items-center px-4 py-2 border border-transparent rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2';
+export const Button = ({ variant = 'primary', size = 'sm', children, ...props }: ButtonProps) => {
+  const baseClasses = 'inline-flex items-center px-4 py-2 border border-transparent rounded-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2';
   const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
+    primary: 'bg-red-600 text-white hover:bg-blue-700',
     destructive: 'bg-red-600 text-white hover:bg-red-700',
   };
   const sizes = {
