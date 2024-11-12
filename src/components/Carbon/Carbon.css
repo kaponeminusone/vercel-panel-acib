@@ -1,0 +1,78 @@
+.carbon-component {
+  width: 12rem;
+  border: 1px solid #00000047;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background-color: white;
+}
+
+.carbon-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.carbon-name {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.carbon-id {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.carbon-bar {
+  display: flex;
+  height: 1.5rem;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.carbon-input,
+.carbon-output {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  transition: width 0.3s ease-in-out;
+}
+
+.carbon-input {
+  left: 0;
+  background-color: #82ace1;
+  justify-content: flex-start;
+  padding-left: 0.5rem;
+}
+
+.carbon-output {
+  right: 0;
+  background-color: #81cf94;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+}
+
+.carbon-value {
+  color: black;
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.carbon-icon {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.carbon-input .carbon-icon {
+  margin-right: 0.25rem;
+}
+
+.carbon-output .carbon-icon {
+  margin-left: 0.25rem;
+}

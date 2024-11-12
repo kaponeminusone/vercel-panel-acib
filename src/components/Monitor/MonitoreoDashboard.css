@@ -1,0 +1,283 @@
+/* General Styles */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: white;
+  width: 100%;
+}
+
+.dashboard-header {
+  background-color: white;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* align-items: center; */
+}
+
+.header-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.search-container {
+  position: relative;
+  width: 50%;
+}
+
+.search-input-monitor {
+  width: 90%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+  padding-left: 40px;
+}
+
+
+.search-input-monitor:focus {
+  border-color: #4caf50;
+  outline: none;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+}
+
+/* Main Content */
+.main-content-monitor {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.main-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.filter-section {
+  background-color: #e5e7eb;
+  padding: 0.5rem;
+}
+
+.filter-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.content-columns {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.column {
+  /* box-sizing: border-box; */
+  width: 50%;
+  padding: 0.5rem;
+  /* overflow-y: auto; */
+  height: 90%;
+}
+
+.column-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.241);
+}
+
+.card-monitor {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.card-header-monitor {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-time-monitor {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.card-title-monitor {
+  font-weight: 600;
+}
+
+.card-subtitle-monitor {
+  font-size: 0.875rem;
+}
+
+.card-tags-monitor {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tag-monitor {
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: white;
+}
+
+.blue-tag {
+  background-color: #3b82f6;
+}
+
+.green-tag {
+  background-color: #10b981;
+}
+
+.yellow-tag {
+  background-color: #f59e0b;
+}
+
+.red-tag {
+  background-color: #ef4444;
+}
+
+/* Sidebar */
+.sidebar{
+  width: 33.333%;
+  background-color: white;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.sidebar-monitor{
+  width: 33.333%;
+  background-color: white;
+  padding: 1rem;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.status-label {
+  background-color: #fef08a;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  background-color: #10b981;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.add-icon {
+  margin-right: 0.25rem;
+}
+
+.sidebar-actions {
+  margin-bottom: 1rem;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  width: 100%;
+  background-color: white;
+  border-radius: 0.25rem;
+  text-align: left;
+}
+
+.action-button:hover {
+  background-color: #f3f4f6;
+}
+
+.action-icon {
+  margin-right: 0.5rem;
+}
+
+.sidebar-content {
+  background-color: #c9c9c9;
+  padding: 1rem;
+  padding-top: 5px;
+  overflow: hidden ;
+}
+
+.sidebar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.sidebar-description {
+  color: #6b7280;
+}
+
+.card-monitor p{
+  margin: 0;
+}
+
+.card-monitor {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+  transition: box-shadow 0.3s ease, transform 0.3s ease; /* Transiciones para sombra y transformación */
+}
+
+.card-monitor:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra más intensa al pasar el mouse */
+  transform: translateY(-2px); /* Leve elevación de la tarjeta */
+}
+
+.card-list{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow-y: scroll;
+  background-color: white;
+  padding-right: 5px;
+}
+
+.selection-icon {
+  cursor: pointer;
+  transition: color 0.3s, opacity 0.3s;
+}
+
+.selection-icon.not-selected {
+  opacity: 0.3; /* Opacidad cuando no está seleccionado */
+  color: #000; /* Color para el icono no seleccionado */
+}
+
+.selection-icon.selected {
+  opacity: 1; /* Opacidad completa cuando está seleccionado */
+  color: green; /* Color para el icono seleccionado */
+}
